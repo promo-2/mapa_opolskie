@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mapa Opolskie LGD</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+  <style>
+    #map-container {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      width: 95%;
+    }
+
+    #map {
+      width: 87%;
+      height: 600px;
+      background-color: #eaeaea;
+    }
+
+    #image-container {
+      margin-top: 10px;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+    }
+
+    #image-container img {
+      width: auto;
+      height: 50px;
+      margin-bottom: 10px;
+      cursor: pointer;
+    }
+
+    #gmina-info {
+      width: 100%;
+      padding-left: 10px;
+    }
+
+    #gmina-name {
+      margin-top: 20px;
+      font-size: 16px;
+      font-weight: bold;
+    }
+
+    #gmina-details {
+      margin-top: 10px;
+      font-size: 14px;
+    }
+
+    #gmina-image {
+      margin-top: 10px;
+      width: auto;
+      height: 50px;
+      border-radius: 5px;
+      display: none;
+    }
+
+    .highlight {
+      fill: orange !important;
+      fill-opacity: 0.7;
+    }
+  </style>
+</head>
+<body>
+
+<p><b>Mapa opolskich Lokalnych Grup Działania</b><br>
+Znajdź i kliknij gminę, aby dowiedzieć się więcej na temat Lokalnej Strategii Rozwoju (LSR)</p>
+
+<div id="map-container">
+  <div id="map"></div>
+  <div id="image-container">
+    <img data-group="Partnerstwo Borów Niemodlińskich" src="https://raw.githubusercontent.com/promo-2/mapa_opolskie/main/Partnerstwo.jpg">
+    <img data-group="Stowarzyszenie Lokalna Grupa Działania „Płaskowyż Dobrej Ziemi”" src="https://raw.githubusercontent.com/promo-2/mapa_opolskie/main/Plaskowyz.jpg">
+  </div>
+</div>
+
+<div id="gmina-info">
+  <div id="gmina-name">Wskaż gminę, aby dowiedzieć się więcej.</div>
+  <div id="gmina-details"></div>
+  <img id="gmina-image" src="" alt="Obrazek gminy">
+</div>
+
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+<script>
+  const grupy = {
+    "Partnerstwo Borów Niemodlińskich": {
+      tel: "tel.: (77) 460 63 51",
+      opis: "ul. Rynek 52, 49-100 Niemodlin",
+      link: "https://boryniemodlinskie.pl/",
+      obrazek: "https://raw.githubusercontent.com/promo-2/mapa_opolskie/main/Partnerstwo.jpg",
+      dodatkowyOpis1: "Pani Jadwiga Wójciak - Prezes",
+      dodatkowyOpis2: "mail: <a href='mailto:niemodlinskie@op.pl'>niemodlinskie@op.pl</a>",
+      latlng: [50.6422, 17.6191],
+      gminy: ["Dąbrowa", "Komprachcice", "Niemodlin", "Prószków", "Tułowice", "Strzeleczki", "Biała", "Łambinowice"],
+      color: "red"
+    },
+    "Stowarzyszenie Lokalna Grupa Działania „Płaskowyż Dobrej Ziemi”": {
+      tel: "tel.: (77) 418 14 66",
+      opis: "ul. Damrota 4, 46-200 Kluczbork",
+      link: "https://plaskowyz.pl/",
+      obrazek: "https://raw.githubusercontent.com/promo-2/mapa_opolskie/main/Plaskowyz.jpg",
+      dodatkowyOpis1: "Pan Andrzej Damasiewicz - Prezes",
+      dodatkowyOpis2: "mail: <a href='mailto:biuro@plaskowyz.pl'>biuro@plaskowyz.pl</a>",
+      latlng: [50.972, 18.219],
+      gminy: ["Kluczbork", "Lasowice Wielkie", "Byczyna", "Wołczyn"],
+      color: "green"
+    }
+  };
+
+  const gminaName = document.getElementById('gmina-name');
+  const gminaDetails = document.getElementById('gmina-details');
+  const gminaImage = document.getElementById('gmina-image');
+
+  const map = L.map('map').setView([50.67, 17.93], 9);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '&copy; OpenStreetMap contributors'
+  }).addTo(map);
+
+  const geojsonLayer = L.geoJSON(null, {
+    style: function (feature) {
+      let groupName = null;
+      for (let name in grupy) {
+        if (grupy[name].gminy.includes(feature.properties.nazwaGM)) {
+          groupName = name;
+          break;
+        }
+      }
+      if (groupName) {
+        return {
+          color: grupy[groupName].color,
+          fillColor: grupy[groupName].color,
+          weight: 2,
+          fillOpacity: 0.3
+        };
+      }
+      return null;
+    },
+    onEachFeature: function (feature, layer) {
+      let groupName = null;
+      for (let name in grupy) {
+        if (grupy[name].gminy.includes(feature.properties.nazwaGM)) {
+          groupName = name;
+          break;
+        }
+      }
+      if (groupName) {
+        const popupContent = `  
+          <b>${groupName}</b><br>
+          <img src="${grupy[groupName].obrazek}" alt="${groupName}" style="width: 200px; cursor: pointer;" onclick="window.open('${grupy[groupName].link}', '_blank')"><br>
+          <b>Adres:</b> ${grupy[groupName].opis}<br>
+          <b>Telefon:</b> ${grupy[groupName].tel}
+        `;
+        layer.on('click', function (e) {
+          L.popup({ closeButton: true, autoClose: true })
+            .setLatLng(e.latlng)
+            .setContent(popupContent)
+            .openOn(map);
+        });
+
+        layer.on({
+          mouseover: function (e) {
+            layer.setStyle({ fillColor: 'white', fillOpacity: 0.3 });
+            gminaName.innerHTML = `<b>Gmina ${feature.properties.nazwaGM}</b><br>leży na obszarze realizacji LSR przez:<br>${groupName}`;
+            gminaDetails.innerHTML = `${grupy[groupName].opis}<br>${grupy[groupName].tel}<br>${grupy[groupName].dodatkowyOpis1}<br>${grupy[groupName].dodatkowyOpis2}`;
+            gminaImage.src = grupy[groupName].obrazek || 'https://via.placeholder.com/150';
+            gminaImage.style.display = 'block';
+          },
+          mouseout: function () {
+            geojsonLayer.resetStyle(layer);
+          }
+        });
+      }
+    }
+  }).addTo(map);
+
+  fetch('https://raw.githubusercontent.com/promo-2/mapa_opolskie/main/OpolskieLGD.geojson')
+    .then(response => response.json())
+    .then(data => {
+      const filteredData = {
+        type: "FeatureCollection",
+        features: data.features.filter(feature => {
+          return Object.values(grupy).some(group => group.gminy.includes(feature.properties.nazwaGM));
+        })
+      };
+      geojsonLayer.addData(filteredData);
+    });
+
+  const groupImages = document.querySelectorAll('#image-container img');
+  groupImages.forEach(img => {
+    img.addEventListener('mouseover', function () {
+      const groupName = img.getAttribute('data-group');
+      const group = grupy[groupName];
+      map.setView(group.latlng, 10);
+    });
+    img.addEventListener('mouseout', function () {
+      map.setView([50.67, 17.93], 9);
+    });
+    img.addEventListener('click', function () {
+      const groupName = img.getAttribute('data-group');
+      const group = grupy[groupName];
+      if (group && group.link) {
+        window.open(group.link, '_blank');
+      }
+    });
+  });
+</script>
+
+</body>
+</html>
